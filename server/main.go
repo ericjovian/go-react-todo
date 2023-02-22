@@ -93,5 +93,28 @@ func main() {
 		return c.JSON(todos) // Return the updated todos array as a JSON response
 	})
 
+	// Define a route to edit a Todo item by its ID
+	app.Patch("/api/todos/:id/edit", func(c *fiber.Ctx) error {
+		id, err := c.ParamsInt("id") // Get the ID parameter from the URL
+		if err != nil {
+			return c.Status(401).SendString("Invalid id") // Return an error if the ID is invalid
+		}
+
+		todo := &Todo{}
+		if err := c.BodyParser(todo); err != nil { // Parse the request body to get the updated Todo item
+			return err // Return an error if parsing the request body fails
+		}
+
+		for i, t := range todos { // Loop through the Todo items to find the one with the matching ID
+			if t.ID == id {
+				todos[i].Title = todo.Title // Update the title of the Todo item
+				todos[i].Body = todo.Body   // Update the body of the Todo item
+				break
+			}
+		}
+
+		return c.JSON(todos) // Return the updated Todo items as a JSON response
+	})
+
 	log.Fatal(app.Listen(":4000")) // Start the server and log any fatal errors
 }

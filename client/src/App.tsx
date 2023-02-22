@@ -1,9 +1,12 @@
-import {Box, Flex, List, ThemeIcon} from '@mantine/core'
+import { useState } from 'react'
+import { Box, Flex, List, ThemeIcon } from '@mantine/core'
 import useSWR from "swr"
 import Pencil from './assets/pencil.svg'
 import Bin from './assets/bin.svg'
 import './App.css'
 import AddTodo from "./components/AddTodo"
+import EditTodo from './components/EditTodo'
+
 
 // Define a TypeScript interface for the Todo object
 export interface Todo{
@@ -21,6 +24,15 @@ const fetcher = (url: string) => fetch(`${ENDPOINT}/${url}`).then((r) => r.json(
 
 // Define the main App component
 function App() {
+  // Define the state variable for editingTodo
+  const [editingTodo, setEditingTodo] = useState<{
+    id: number;
+    initialTitle: string;
+    initialBody: string;
+    mutate: () => void;
+  } | null>(null);
+
+
   // Fetch the list of todos from the API using useSWR hook
   const { data, mutate } = useSWR<Todo[]>('api/todos', fetcher);
 
@@ -43,7 +55,7 @@ function App() {
     await fetch(`${ENDPOINT}/api/todos/${id}`, { method: 'DELETE' });
     // Call mutate to update the list of todos after deleting a todo
     mutate();
-  }  
+  }
 
   // Render the UI using Mantine's Box and List components
   return (
@@ -60,7 +72,9 @@ function App() {
             <Flex justify="space-between" align="flex-center" direction="row" gap="xl">
               {/* Render the todo item with an icon that indicates if it's done or not */}
               <List.Item
-                onClick={() => todo.done ? markTodoAsUndone(todo.id) : markTodoAsDone(todo.id)}
+                onClick={() =>
+                  todo.done ? markTodoAsUndone(todo.id) : markTodoAsDone(todo.id)
+                }
                 key={`todo__${todo.id}`}
                 icon={
                   todo.done ? (
@@ -73,21 +87,67 @@ function App() {
                     </ThemeIcon>
                   )
                 }
-                style={{ color: '#fff' }}
+                style={{ color: "#fff" }}
               >
                 {todo.title}
               </List.Item>
-              {/* Render a button to delete the todo item */}
-                <Flex gap={'xs'} style={{ height:"20px" }}>
-                  {/* <img src={Pencil} alt="edit" itemType="clickable" style={{ cursor: "pointer"}} /> */}
-                  <img src={Bin} alt="delete" itemType="clickable" onClick={(e) => { e.stopPropagation(); deleteTodo(todo.id); }} style={{ cursor: "pointer" }}/>
-                </Flex>
+              {/* Render a button to edit the todo item */}
+              <Box style={{ marginLeft: "auto", display: "flex"}}>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingTodo({
+                      id: todo.id,
+                      initialTitle: todo.title,
+                      initialBody: todo.body,
+                      mutate,
+                    });
+                  }}
+                  style={{
+                    cursor: "pointer",
+                    border: "none",
+                    background: "none",
+                    padding: "0",
+                    marginRight: "1rem",
+                  }}
+                >
+                  <img src={Pencil} alt="edit" />
+                </button>
+
+                {/* Render a button to delete the todo item */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteTodo(todo.id);
+                  }}
+                  style={{
+                    cursor: "pointer",
+                    border: "none",
+                    background: "none",
+                    padding: "0",
+                  }}
+                >
+                  <img src={Bin} alt="delete" />
+                </button>
+              </Box>
             </Flex>
-          )
+          );
         })}
       </List>
       {/* Render a component to add a new todo item */}
       <AddTodo mutate={mutate} />
+       {/* Render a component to edit a todo item */}
+        {editingTodo && (
+          <EditTodo
+            id={editingTodo.id}
+            initialTitle={editingTodo.initialTitle}
+            initialBody={editingTodo.initialBody}
+            onClose={() => setEditingTodo(null)}
+            mutate={editingTodo.mutate}
+          />
+        )}
     </Box>
   )
 }
